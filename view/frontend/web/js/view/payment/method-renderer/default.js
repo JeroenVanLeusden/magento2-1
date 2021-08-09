@@ -8,7 +8,8 @@ define(
         'Magento_Checkout/js/checkout-data',
         'Magento_Customer/js/model/customer',
         'Magento_Checkout/js/model/url-builder',
-        'Mollie_Payment/js/model/checkout-config'
+        'Mollie_Payment/js/model/checkout-config',
+        'Magento_Ui/js/model/messageList'
     ],
     function (
         $,
@@ -19,7 +20,8 @@ define(
         checkoutData,
         customer,
         urlBuilder,
-        checkoutConfigData
+        checkoutConfigData,
+        messageList
     ) {
         'use strict';
 
@@ -82,8 +84,25 @@ define(
                 },
                 afterPlaceOrder: function () {
                     this._super();
-                    window.location = url.build('mollie/checkout/redirect/paymentToken/' + this.paymentToken());
-                }
+                    
+                    if (customer.isLoggedIn()) {
+                        serviceUrl = urlBuilder.createUrl('/carts/mine/mollie/checkout-url', {})
+                    } else {
+                        serviceUrl = urlBuilder.createUrl('/guest-carts/:quoteId/mollie/checkout-url', {
+                          quoteId: quote.getQuoteId(),
+                        })
+                    }
+
+                    $.ajax({
+                        url: url.build(serviceUrl),
+                        type: 'GET',
+                        contentType: 'application/json',
+                    }).done(function (result) {
+                        window.location = result
+                    }).fail(function (error) {
+                        messageList.addErrorMessage({ message: error.getErrorMessage() });
+                    })
+               }
             }
         );
     }
